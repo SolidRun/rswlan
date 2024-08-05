@@ -146,7 +146,6 @@ struct rs_core {
 
 		struct {
 			s32 reset;
-			s32 irq0;
 			s32 irq0_nb; // IRQ Number of irq0 line
 		} gpio;
 		struct {

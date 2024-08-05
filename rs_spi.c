@@ -21,6 +21,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// TYPE DEFINITION
 
+static struct gpio_desc *gpio_irq;
 static struct gpio_desc *gpio_reset;
 u32 spi_clk;
 
@@ -176,7 +177,6 @@ static void spi_bus_ops_deinit(struct rs_core *core)
 
 	disable_irq(core->bus.gpio.irq0_nb);
 	free_irq(core->bus.gpio.irq0_nb, core);
-	gpio_free(core->bus.gpio.irq0);
 
 	/* send reset */
 	spi_host_reset(core);
@@ -211,13 +211,15 @@ s32 spi_probe_init_core(struct spi_device *spi, struct rs_core **core)
 	mutex_init(&((*core)->bus.mgmt_lock));
 
 	if (np) {
-		s32 gpio = of_get_named_gpio(np, "irq0-gpios", 0);
-		if (gpio_is_valid(gpio)) {
-			(*core)->bus.gpio.irq0 = gpio;
-		} else {
-			dev_err(&spi->dev, "GPIO%d(irq0-gpios): Valid check failure\n", gpio);
+		gpio_irq = devm_gpiod_get(&spi->dev, "irq0", GPIOD_IN);
+		if (IS_ERR(gpio_irq)) {
+			err = PTR_ERR(gpio_irq);
+			if (err != -EPROBE_DEFER)
+				dev_err(&spi->dev, "Failed to get irq0 GPIO\n");
 			goto err_wq;
 		}
+		gpiod_set_consumer_name(gpio_irq, "rswlan");
+		(*core)->bus.gpio.irq0_nb = gpiod_to_irq(gpio_irq);
 
 		gpio_reset = devm_gpiod_get(&spi->dev, "reset", GPIOD_OUT_LOW);
 		if (IS_ERR(gpio_reset)) {
@@ -281,17 +283,6 @@ s32 spi_probe_init_core(struct spi_device *spi, struct rs_core **core)
 		dev_info(&spi->dev, "FW SFLAH mode. No download FW image.\n");
 	}
 
-	err = gpio_request((*core)->bus.gpio.irq0, "rswlan_irq0");
-	if (err != 0) {
-		dev_err(&spi->dev, "gpio_request err %d\n", err);
-		goto err_wq;
-	}
-	err = gpio_direction_input((*core)->bus.gpio.irq0);
-	if (err != 0) {
-		dev_err(&spi->dev, "gpio_direction_input err %d\n", err);
-		goto err_wq;
-	}
-	(*core)->bus.gpio.irq0_nb = gpio_to_irq((*core)->bus.gpio.irq0);
 	err = request_irq((*core)->bus.gpio.irq0_nb, rs_irq_handler, IRQF_TRIGGER_RISING, "rswlan_irq0",
 			  *core);
 	if (err != 0) {
