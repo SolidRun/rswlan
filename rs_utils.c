@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/**
+ * Copyright (C) [2022-2023] Renesas Electronics Corporation and/or its affiliates.
+ */
+
+////////////////////////////////////////////////////////////////////////////////
+/// INCLUDE
+
+#include "rs_utils.h"
+#include "rs_debugfs.h"
+#include "rs_defs.h"
+#include "rs_mgmt_rx.h"
+#include "rs_rx.h"
+#include "rs_tx.h"
+
+////////////////////////////////////////////////////////////////////////////////
+/// TYPE DEFINITION
+
+u32 log_level = LOG_LEVEL_DEFAULT;
+
+////////////////////////////////////////////////////////////////////////////////
+/// FUNCTION
+
+
