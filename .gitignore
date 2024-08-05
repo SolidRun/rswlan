@@ -1,0 +1,8 @@
+*.o
+*.cmd
+*.ko
+*.mod.c
+*.mod
+*.order
+*.symvers
+version_gen.h
