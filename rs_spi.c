@@ -21,7 +21,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// TYPE DEFINITION
 
-static u32 gpio_reset;
+static struct gpio_desc *gpio_reset;
 u32 spi_clk;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -219,14 +219,14 @@ s32 spi_probe_init_core(struct spi_device *spi, struct rs_core **core)
 			goto err_wq;
 		}
 
-		gpio = of_get_named_gpio(np, "reset-gpios", 0);
-		if (gpio_is_valid(gpio)) {
-			(*core)->bus.gpio.reset = gpio;
-			gpio_reset = gpio;
-		} else {
-			dev_err(&spi->dev, "GPIO%d(reset-gpios): Valid check failure\n", gpio);
+		gpio_reset = devm_gpiod_get(&spi->dev, "reset", GPIOD_OUT_LOW);
+		if (IS_ERR(gpio_reset)) {
+			err = PTR_ERR(gpio_reset);
+			if (err != -EPROBE_DEFER)
+				dev_err(&spi->dev, "Failed to get reset GPIO\n");
 			goto err_wq;
 		}
+		gpiod_set_consumer_name(gpio_reset, "rswlan");
 
 		spi_clk = spi->max_speed_hz;
 	} else {
@@ -309,15 +309,8 @@ err_wq:
 
 void hw_reset_fw(void)
 {
-	u32 pin = gpio_reset;
-
-	gpio_request(pin, "rswlan_reset");
-	gpio_direction_output(pin, 0);
-
-	gpio_set_value(pin, 0);
+	gpiod_set_value_cansleep(gpio_reset, 1);
 	msleep(100);
-	gpio_set_value(pin, 1);
-
-	gpio_free(pin);
+	gpiod_set_value_cansleep(gpio_reset, 0);
 }
 EXPORT_SYMBOL(hw_reset_fw);
