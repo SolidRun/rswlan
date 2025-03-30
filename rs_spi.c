@@ -303,5 +303,6 @@ void hw_reset_fw(void)
 	gpiod_set_value_cansleep(gpio_reset, 1);
 	msleep(100);
 	gpiod_set_value_cansleep(gpio_reset, 0);
+	msleep(100);
 }
 EXPORT_SYMBOL(hw_reset_fw);
